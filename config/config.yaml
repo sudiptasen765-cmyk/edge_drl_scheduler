@@ -1,0 +1,9 @@
+# Global project configuration
+# Sections are added incrementally as each component is implemented.
+
+project:
+  name: "edge_drl_scheduler"
+  seed: 42
+
+simulation:
+  time_unit: "ms"
