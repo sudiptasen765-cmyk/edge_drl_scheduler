@@ -39,6 +39,13 @@ Seeding: reset(seed=s) fixes the environment RNG, which fixes the sampled
 workload, network scenario and task stream. Same seed -> identical episode.
 reset(options={...}) may override: workload_type, network_scenario,
 duration_ms, task_seed.
+
+Episode summary key: the per-episode summary is returned at
+info["episode_summary"], NOT info["episode"]. stable-baselines3 has its own
+internal convention (from its Monitor wrapper) that reads info["episode"] as
+a {'r', 'l', 't'} dict for its own logging, whether or not Monitor is
+actually used - reusing that key name for our own, differently-shaped
+summary causes SB3 to crash trying to read a key ('r') that isn't there.
 """
 
 from __future__ import annotations
@@ -300,7 +307,7 @@ class EdgeSchedulingEnv(gym.Env):
             self._needs_reset = True
             truncated = self._truncated_at_reset
             info = {
-                "episode": self._episode_summary(truncated=truncated),
+                "episode_summary": self._episode_summary(truncated=truncated),
                 "action_mask": self._mask.copy(),
                 "action_mask_level": self._mask_level,
             }
@@ -388,7 +395,7 @@ class EdgeSchedulingEnv(gym.Env):
         }
         if terminated or truncated:
             self._needs_reset = True
-            info["episode"] = self._episode_summary(truncated=truncated)
+            info["episode_summary"] = self._episode_summary(truncated=truncated)
 
         return self._observation(), float(breakdown.total), terminated, truncated, info
 
@@ -489,7 +496,7 @@ def rollout_with_scheduler(
     """
     Run one full episode with a rule-based baseline (FIFO / RoundRobin /
     Random / Greedy - anything callable as scheduler(task, sim) -> server_id)
-    through the Gymnasium environment, and return info["episode"].
+    through the Gymnasium environment, and return info["episode_summary"].
 
     Because the baseline sees the SAME environment, task stream and reward as
     the DRL agent will, this gives directly comparable episode returns.
@@ -502,4 +509,4 @@ def rollout_with_scheduler(
         action = 0 if task is None else env.server_ids.index(scheduler(task, env.sim))
         _, _, terminated, truncated, info = env.step(action)
         if terminated or truncated:
-            return info["episode"]
+            return info["episode_summary"]

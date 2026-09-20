@@ -187,7 +187,7 @@ def test_task_conservation_and_no_double_counting():
         assert len(all_ids) == len(set(all_ids)) == len(sim.tasks), (workload, len(all_ids), len(sim.tasks))
         assert set(all_ids) == {t.task_id for t in sim.tasks}
         # one decision per task
-        assert info["episode"]["num_decisions"] == len(sim.tasks)
+        assert info["episode_summary"]["num_decisions"] == len(sim.tasks)
         # per-step event counts add up to the simulator's own logs
         assert sum(t[2]["n_completed"] for t in trace) == len(completed)
         assert sum(t[2]["n_rejected"] + t[2]["n_deadline_failures"] for t in trace) == len(failed)
@@ -203,7 +203,7 @@ def test_reward_terms_match_simulator_log():
         sim = env.sim
         prio = {t.task_id: str(t.priority) for t in sim.tasks}
         pw = cfg.priority_weights
-        raw = info["episode"]["reward_terms_raw"]
+        raw = info["episode_summary"]["reward_terms_raw"]
 
         exp_latency = sum(min(c["latency_ms"] / cfg.latency_ref_ms, cfg.latency_cap)
                           for c in sim.completed_tasks)
@@ -219,8 +219,8 @@ def test_reward_terms_match_simulator_log():
         assert np.isclose(raw["rejection"], exp_rej)
         assert np.isclose(raw["energy"], exp_energy)  # every joule counted once
         # episode return equals the sum of weighted terms
-        assert np.isclose(info["episode"]["episode_return"],
-                          cfg.reward_scale * sum(info["episode"]["reward_terms_weighted"].values()))
+        assert np.isclose(info["episode_summary"]["episode_return"],
+                          cfg.reward_scale * sum(info["episode_summary"]["reward_terms_weighted"].values()))
 
 
 def test_preview_network_delay_matches_simulator_and_restores_state():
@@ -263,8 +263,8 @@ def test_masked_policy_is_never_rejected():
             policy_seed=seed)
         assert all(t[2]["action_was_valid"] for t in trace)
         if max(levels) < 2:  # mask never had to fall back
-            bad = rejections & set(info["episode"]["failure_reasons"])
-            assert not bad, (workload, network, info["episode"]["failure_reasons"])
+            bad = rejections & set(info["episode_summary"]["failure_reasons"])
+            assert not bad, (workload, network, info["episode_summary"]["failure_reasons"])
             assert all(t[2]["accepted"] for t in trace)
 
 
@@ -274,8 +274,8 @@ def test_mask_fallback_keeps_mask_non_empty_when_all_servers_full():
     info, levels, trace = run_masked_random(
         env, seed=0, options={"workload_type": "heavy", "network_scenario": "congested"})
     assert max(levels) >= 2, "expected the fallback path to be exercised"
-    assert info["episode"]["num_failed"] > 0  # overload really produced failures
-    assert "episode" in info
+    assert info["episode_summary"]["num_failed"] > 0  # overload really produced failures
+    assert "episode_summary" in info
 
 
 def test_overload_fraction_prunes_nearly_full_servers():
@@ -429,20 +429,20 @@ def test_max_ticks_truncates_instead_of_hanging():
     env = make_env(max_ticks=1)
     env.reset(seed=0, options={"workload_type": "normal"})
     terminated, truncated, info = run_until_end(env)
-    assert truncated and not terminated and info["episode"]["truncated"] is True
+    assert truncated and not terminated and info["episode_summary"]["truncated"] is True
 
     # limit hit in the middle of an episode
     env = make_env(max_ticks=300)
     env.reset(seed=0, options={"workload_type": "normal"})
     terminated, truncated, info = run_until_end(env)
-    assert truncated and not terminated and info["episode"]["truncated"] is True
-    assert 0 < info["episode"]["num_decisions"] < len(env.sim.tasks)
+    assert truncated and not terminated and info["episode_summary"]["truncated"] is True
+    assert 0 < info["episode_summary"]["num_decisions"] < len(env.sim.tasks)
 
     # a normal episode is NOT truncated
     env = make_env()
     env.reset(seed=0, options={"workload_type": "normal"})
     terminated, truncated, info = run_until_end(env)
-    assert terminated and not truncated and info["episode"]["truncated"] is False
+    assert terminated and not truncated and info["episode_summary"]["truncated"] is False
 
 
 def test_scales_to_more_servers():
@@ -457,7 +457,7 @@ def test_scales_to_more_servers():
         assert env.action_space.n == n
         assert env.observation_space.shape == (env.state_builder.obs_dim,)
         info, _, trace = run_masked_random(env, seed=1, options={"workload_type": "normal"})
-        assert "episode" in info and len(trace) > 0
+        assert "episode_summary" in info and len(trace) > 0
 
 
 def test_env_never_mutates_baselines_or_config_files():

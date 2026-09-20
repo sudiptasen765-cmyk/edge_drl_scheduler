@@ -1,0 +1,34 @@
+# Masked PPO training configuration (Phase 6). See agents/ppo_config.py and
+# training/train_ppo.py.
+#
+# n_steps is PER environment; the actual rollout buffer size SB3 collects
+# before each update is n_steps * training.num_envs. That must be a multiple
+# of batch_size - train_ppo.py checks this and fails loudly if you change one
+# without the other (256 * 4 = 1024, divisible by 256 -> 4 minibatches/epoch).
+
+ppo:
+  policy: MlpPolicy
+  net_arch: [128, 128]
+  learning_rate: 0.0003
+  n_steps: 256
+  batch_size: 256
+  n_epochs: 8
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: 0.03      # early-stops an epoch if the policy moves too far; set null to disable
+  normalize_advantage: true
+
+training:
+  total_timesteps: 300000
+  num_envs: 4           # parallel simulated environments (laptop CPU - keep modest)
+  seed: 42
+  eval_freq_steps: 10000       # how often (in real env steps) to compare against Greedy
+  eval_episodes: 5             # episodes averaged per evaluation
+  checkpoint_freq_steps: 25000
+  log_dir: results/logs/ppo
+  checkpoint_dir: models/ppo_checkpoints
+  tensorboard_log: results/logs/tensorboard
