@@ -1,0 +1,9 @@
+condition,1,2,3,4,top_share_%,norm_entropy
+burst_congested,17.0,28.2,16.4,38.4,38.4,1.0
+burst_normal,19.2,27.1,15.3,38.4,38.4,1.0
+heavy_congested,17.9,23.2,21.0,38.0,38.0,1.0
+heavy_normal,17.2,26.3,13.5,43.1,43.1,0.9
+normal_congested,23.7,5.8,35.3,35.3,35.3,0.9
+normal_normal,0.0,0.0,36.5,63.5,63.5,0.5
+variable_congested,25.7,29.5,19.9,25.0,29.5,1.0
+variable_normal,14.0,11.0,24.7,50.3,50.3,0.9
