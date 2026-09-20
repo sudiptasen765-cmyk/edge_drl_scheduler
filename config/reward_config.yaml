@@ -1,0 +1,46 @@
+# Reward configuration for the DRL scheduler (see rewards/reward_engine.py).
+#
+# Every term is computed as a non-negative, roughly unit-scaled "raw" value,
+# then multiplied by its weight. Set a weight to 0 to ablate that term
+# (Phase 10 reward ablations); the raw value is still logged in info dicts.
+#
+# Costs (subtracted): latency, sla, rejection, balance, energy
+# Benefit (added):    utilization
+#
+# Calibration notes (measured with the four baselines on normal/heavy/burst/
+# variable workloads, 5 seeds each):
+#   - median task latency ~ 940 ms, p90 ~ 1570 ms      -> latency_ref_ms 1000
+#   - fleet energy 17-90 J/task (idle draw x drain time) -> energy_ref_j 100
+#   - sla + rejection MUST outweigh latency: a failed task has no latency
+#     cost, so if failing were cheaper than serving, the agent would learn
+#     to fail tasks. Invariant used here (and checked by test_drl_reward.py):
+#         sla * min(priority_weight) >= latency * latency_cap
+#     i.e. even the cheapest failure (low priority) costs at least as much as
+#     the most expensive successful service (latency at the cap).
+#     If you change these numbers, keep that inequality true.
+
+reward:
+  weights:
+    latency: 0.5
+    sla: 3.0          # late completion or killed for missing its deadline
+    rejection: 4.0    # never served (queue full / invalid) - worst outcome
+    balance: 0.3      # load imbalance across servers after the decision
+    energy: 0.2       # fleet joules since the previous decision
+    utilization: 0.1  # capacity-weighted CPU utilization (benefit)
+
+  latency_ref_ms: 1000.0   # latency that counts as "1.0"
+  latency_cap: 3.0         # per-task latency cost is clipped at this value
+  energy_ref_j: 100.0      # joules that count as "1.0"
+
+  # Extra weight for violations on higher-priority tasks (sla + rejection).
+  priority_weights:
+    high: 2.0
+    medium: 1.0
+    low: 0.5
+
+  # Per-server load score = cpu_w * cpu_util + queue_w * (eff_queue / max_queue)
+  # (the same formula GreedyScheduler uses).
+  load_cpu_weight: 0.5
+  load_queue_weight: 0.5
+
+  reward_scale: 1.0        # global multiplier applied to the final reward

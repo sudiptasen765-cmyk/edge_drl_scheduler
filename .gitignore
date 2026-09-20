@@ -13,3 +13,4 @@ results/logs/*
 !results/logs/.gitkeep
 .vscode/
 *.log
+code_dump.txt

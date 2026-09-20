@@ -1,0 +1,45 @@
+# Gymnasium environment configuration (see environment/edge_scheduling_env.py).
+# Server fleet lives in config/server_config.yaml; reward in reward_config.yaml.
+
+environment:
+  num_users: 15
+  time_step_ms: 10.0
+  duration_ms: 10000.0
+
+  # Each reset() samples one workload and one network scenario uniformly from
+  # these lists (using the env's seeded RNG). Override per-episode with
+  # reset(options={"workload_type": ..., "network_scenario": ...}).
+  workloads: [normal, heavy, burst, variable]
+  network_scenarios: [normal, congested]
+
+  # The 'unseen' workload and 'unseen' network scenario exist ONLY for the
+  # generalization test. Keep this false for any training environment: with
+  # false, requesting either one raises an error. Set it true only for the
+  # evaluation environment used in the unseen-conditions experiment.
+  allow_unseen: false
+
+  # Safety valve: an episode that needs more simulation ticks than this is
+  # truncated (truncated=True) instead of running forever.
+  max_ticks: 60000
+
+observation:
+  # Normalisation constants. Chosen from the workload presets so that even
+  # the 'unseen' workload (up to 50 MB, 2000 ms) fits in [0, 1].
+  data_size_ref_mb: 50.0
+  exec_time_ref_ms: 2000.0
+  slack_ref: 5.0          # deadline slack factors above this saturate
+  delay_ref_ms: 500.0     # network-delay / backlog use x / (x + ref) squashing
+  backlog_ref_ms: 1000.0
+  pending_ref: 10.0       # number of waiting decisions that counts as "full"
+
+  # If true, the per-server feasibility bit (also used for action masking) is
+  # ALSO given to the agent as an observation feature. Keep false so the
+  # "with vs without action masking" ablation is clean: without a mask, the
+  # agent must learn feasibility itself.
+  include_feasibility: false
+
+action_mask:
+  # A server is excluded when its effective queue (queued + in-flight) reaches
+  # overload_fraction * max_queue_length. 1.0 = exclude only servers that are
+  # completely full. Lower it (e.g. 0.8) to also prune nearly-full servers.
+  overload_fraction: 1.0
