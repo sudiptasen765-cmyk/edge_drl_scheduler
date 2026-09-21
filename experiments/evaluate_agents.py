@@ -45,6 +45,7 @@ import pandas as pd
 from sb3_contrib import MaskablePPO
 
 from environment.edge_scheduling_env import EdgeSchedulingEnv, rollout_with_scheduler
+from scheduling.ect_scheduler import EarliestCompletionScheduler
 from scheduling.fifo import FIFOScheduler
 from scheduling.greedy_scheduler import GreedyScheduler
 from scheduling.random_scheduler import RandomScheduler
@@ -61,6 +62,7 @@ BASELINE_FACTORIES = {
     "RoundRobin": lambda seed: RoundRobinScheduler(),
     "Random": lambda seed: RandomScheduler(seed),
     "Greedy": lambda seed: GreedyScheduler(),
+    "ECT": lambda seed: EarliestCompletionScheduler(),
 }
 PPO = "PPO"
 
