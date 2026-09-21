@@ -1,0 +1,34 @@
+{
+  "created_utc": "2026-09-21T07:59:22+00:00",
+  "command": "D:\\edge_drl_scheduler\\experiments\\evaluate_agents.py --include-unseen --model models/ppo_checkpoints/bc_s1/post_bc_model --seed-base 90000 --episodes-per-condition 2 --out results/_smoke_a",
+  "args": {
+    "model": "models/ppo_checkpoints/bc_s1/post_bc_model",
+    "episodes_per_condition": 2,
+    "include_unseen": true,
+    "stochastic": false,
+    "baselines_only": false,
+    "seed_base": 90000,
+    "out": "results/_smoke_a"
+  },
+  "n_conditions": 15,
+  "n_rollouts": 180,
+  "git_commit": "0b8f9d7309468e95dfc7c617bed743085e7e88c9",
+  "git_dirty": true,
+  "python": "3.13.9",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "versions": {
+    "numpy": "2.1.2",
+    "pandas": "2.2.3",
+    "torch": "2.6.0+cpu",
+    "sb3_contrib": "2.8.0",
+    "stable_baselines3": "2.8.0",
+    "gymnasium": "0.29.1"
+  },
+  "torch_threads": 12,
+  "model": {
+    "path": "models\\ppo_checkpoints\\bc_s1\\post_bc_model.zip",
+    "sha256": "dc787470e49764cb3abfd714694c1908976a3ea62518646baa1d5efd89302bb5",
+    "size_bytes": 203738,
+    "modified": "2026-09-21T12:07:01"
+  }
+}
