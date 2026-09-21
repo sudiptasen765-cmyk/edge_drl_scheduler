@@ -7,6 +7,8 @@
 # -Setup focused  : trains on workloads normal+variable (both networks)   -> evaluation_final_s<seed>
 # -Setup alltrain : trains on normal+variable+heavy+burst (both networks) -> evaluation_alltrain_s<seed>
 # -Setup alltrainnonorm : same as alltrain but WITHOUT reward normalization -> evaluation_alltrainnonorm_s<seed>
+# -Setup bc : ECT behaviour-cloning warm start + PPO fine-tune (training.train_ppo_bc, normal+variable, 24 selection episodes)
+#             -> evaluation_bc_s<seed> (best_model) AND evaluation_bcpost_s<seed> (model right after cloning, no PPO steps)
 #
 # Full output goes to results\logs\<run>.log, only key lines are printed.
 # Finished work is skipped, so re-running after an interruption is safe.
@@ -21,14 +23,18 @@ $py = ".\venv\Scripts\python.exe"
 if (-not (Test-Path $py)) { Write-Host "venv python not found - run this from D:\edge_drl_scheduler"; exit 1 }
 New-Item -ItemType Directory -Force -Path "results\logs" | Out-Null
 
+$module = "training.train_ppo"
+$postPrefix = $null
 if ($Setup -eq "focused") {
     $trainArgs = @("--train-workloads", "normal", "variable"); $evalPrefix = "evaluation_final"
 } elseif ($Setup -eq "alltrain") {
     $trainArgs = @("--train-workloads", "normal", "variable", "heavy", "burst"); $evalPrefix = "evaluation_alltrain"
+} elseif ($Setup -eq "bc") {
+    $module = "training.train_ppo_bc"; $trainArgs = @("--eval-per-condition", "3"); $evalPrefix = "evaluation_bc"; $postPrefix = "evaluation_bcpost"
 } elseif ($Setup -eq "alltrainnonorm") {
     $trainArgs = @("--train-workloads", "normal", "variable", "heavy", "burst", "--no-reward-norm"); $evalPrefix = "evaluation_alltrainnonorm"
 } else {
-    Write-Host "-Setup must be 'focused', 'alltrain' or 'alltrainnonorm'"; exit 1
+    Write-Host "-Setup must be 'focused', 'alltrain', 'alltrainnonorm' or 'bc'"; exit 1
 }
 
 function Run-Seed {
@@ -38,9 +44,20 @@ function Run-Seed {
         Write-Host "[skip] training $run (final_model.zip exists)"
     } else {
         Write-Host "[train] $run  seed $seed  $(Get-Date -Format HH:mm:ss)"
-        & $py -m training.train_ppo --run-name $run --seed $seed @trainArgs *> "results\logs\$run.log"
+        & $py -m $module --run-name $run --seed $seed @trainArgs *> "results\logs\$run.log"
         if ($LASTEXITCODE -ne 0) { Write-Host "[FAILED] training $run - see results\logs\$run.log"; return }
         Select-String -Path "results\logs\$run.log" -Pattern "eval @" | Select-Object -Last 2 | ForEach-Object { $_.Line }
+    }
+
+    if ($postPrefix -and (Test-Path "models\ppo_checkpoints\$run\post_bc_model.zip")) {
+        $postOut = "${postPrefix}_s$seed"
+        if (Test-Path "results\$postOut\episodes.csv") {
+            Write-Host "[skip] evaluation $postOut (episodes.csv exists)"
+        } else {
+            Write-Host "[eval] $postOut (post-BC, no PPO steps)  $(Get-Date -Format HH:mm:ss)"
+            & $py -m experiments.evaluate_agents --include-unseen --model "models/ppo_checkpoints/$run/post_bc_model" --seed-base 90000 --episodes-per-condition 20 --out "results/$postOut" *> "results\logs\$postOut.log"
+            if ($LASTEXITCODE -ne 0) { Write-Host "[FAILED] evaluation $postOut - see results\logs\$postOut.log" }
+        }
     }
 
     if (Test-Path "results\$evalOut\episodes.csv") {
